@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CTMA 跨世代思想維度測驗</title>
+    <style>
+        /* 這裡是 CSS (負責外觀美學) */
+        body {
+            font-family: "Noto Serif TC", "PMingLiU", serif; /* 帶有傳統底蘊的襯線字體 */
+            background-color: #f7f5f0; /* 羊皮紙般的溫潤底色 */
+            color: #2c2c2c;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+            max-width: 600px;
+            width: 90%;
+            text-align: center;
+            border: 1px solid #e0dcd3;
+        }
+        h1 { font-size: 24px; margin-bottom: 10px; }
+        .question-text { font-size: 18px; font-weight: bold; margin-bottom: 30px; text-align: left;}
+        .option-btn {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            margin-bottom: 15px;
+            background-color: #fcfcfc;
+            border: 1px solid #d1d1d1;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-align: left;
+        }
+        .option-btn:hover {
+            background-color: #e8e4db;
+            border-color: #8c8c8c;
+        }
+        #result-screen { display: none; }
+        .result-code { font-size: 48px; font-weight: bold; color: #8b2626; margin: 20px 0; letter-spacing: 5px;}
+        .result-name { font-size: 24px; font-weight: bold; margin-bottom: 20px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- 歡迎與測驗畫面 -->
+    <div id="quiz-screen">
+        <h1 id="title">CTMA 思想維度測驗</h1>
+        <p id="progress-text" style="color: #888; font-size: 14px;">準備開始測驗</p>
+        <div id="question-text" class="question-text">請根據你的第一直覺，做出最真實的選擇。</div>
+        <div id="options-container">
+            <button class="option-btn" onclick="startQuiz()">開始測驗</button>
+        </div>
+    </div>
+
+    <!-- 結果結算畫面 -->
+    <div id="result-screen">
+        <h1>你的靈魂代碼是</h1>
+        <div id="result-code" class="result-code">HCRT</div>
+        <div id="result-name" class="result-name">【古典士大夫】</div>
+        <p>這是一份關於你社會底層邏輯的鑑定報告。</p>
+        <button class="option-btn" style="text-align:center;" onclick="location.reload()">重新測驗</button>
+    </div>
+</div>
+
+<script>
+    /* 這裡是 JavaScript (負責大腦與計分邏輯) */
+    
+    // 建立記分板
+    let scores = { H: 0, E: 0, C: 0, I: 0, R: 0, L: 0, T: 0, N: 0 };
+    let currentQuestionIndex = 0;
+
+    // CTMA 題庫 (上半卷 Q1 - Q30)
+    const questions = [
+        // 【職場與權力篇】
+        {
+            axis: ["H", "E"], // 結構軸：階序(H) vs 平權(E)
+            text: "1. 你的直屬主管在跨部門大會議上，把一份幾乎是你獨立完成的專案成果，包裝成「他帶領團隊的共同心血」進行匯報，完全沒提到你的名字。你的反應是？",
+            options: [
+                { text: "(A) 認為職場本來就是主管扛責、下屬做事。只要考績和獎金有實質反映，面子給主管無所謂。", add: "H", points: 2 },
+                { text: "(B) 在會議上不發作，但事後立刻整理所有經手紀錄，確保自己握有實質貢獻的證據。", add: "E", points: 2 },
+                { text: "(C) 覺得這是嚴重的職場剽竊。會找機會在會議中巧妙發言暗示實際執行者是你。", add: "H", points: 1 },
+                { text: "(D) 感到心寒，但為了辦公室和諧選擇吞下去，接著默默打開求職網準備騎驢找馬。", add: "E", points: 1 }
+            ]
+        },
+        {
+            axis: ["H", "E"],
+            text: "2. 公司為了推動「年輕化與扁平化」，宣佈以後全公司上下都不准叫職稱，只能直呼英文名字。你的真實感受是？",
+            options: [
+                { text: "(A) 覺得很不習慣。職稱代表權責，沒有階級稱謂會導致日後推動事情變得混亂。", add: "H", points: 2 },
+                { text: "(B) 完全贊成！能打破隔閡，讓基層更有勇氣提出想法。", add: "E", points: 2 },
+                { text: "(C) 覺得無所謂，只要不影響我的薪水跟下班時間，叫什麼都行。", add: "E", points: 1 },
+                { text: "(D) 表面配合，但遇到真正有實權的長官時，私下還是會偷偷加上尊稱以策安全。", add: "H", points: 1 }
+            ]
+        },
+        {
+            axis: ["R", "L"], // 制裁軸：禮治/道德(R) vs 法理/契約(L)
+            text: "3. 在處理一項具有合法模糊地帶的業務時，你發現一個能替公司省下大筆稅金的「漏洞」，但這在業界算是踩在道德紅線上的潛規則。你會？",
+            options: [
+                { text: "(A) 堅守程序正義與道德底線，不合規矩的事就是不能做，直接放棄。", add: "R", points: 2 },
+                { text: "(B) 只要法律沒有明文禁止，就直接利用這個漏洞，追求利益最大化。", add: "L", points: 2 },
+                { text: "(C) 把漏洞連同潛在風險寫成報告，丟給上層主管去定奪，自己不背鍋。", add: "R", points: 1 },
+                { text: "(D) 找業界前輩或同行打聽，如果大家都在做，那就跟著做。", add: "L", points: 1 }
+            ]
+        },
+        // 【金錢與契約篇】
+        {
+            axis: ["R", "L"],
+            text: "4. 幾個朋友約吃合菜，結帳時發現有人點了昂貴酒水導致金額暴增，對方卻提議「大家直接平分」。你滴酒未沾，你會？",
+            options: [
+                { text: "(A) 為了顧及氣氛與面子，默默掏錢平分，把這筆錢當作社交成本。", add: "R", points: 2 },
+                { text: "(B) 直接拿出帳單，條理分明要求點酒的人自己負擔，親兄弟明算帳。", add: "L", points: 2 },
+                { text: "(C) 半開玩笑地說「喝酒的要多出一點啦」，試圖用圓滑的方式提醒對方。", add: "R", points: 1 },
+                { text: "(D) 當下照付，但事後會在自己的社群軟體上發文抱怨。", add: "L", points: 1 }
+            ]
+        },
+        {
+            axis: ["R", "L"],
+            text: "5. 你準備與交往多年的伴侶步入婚姻，對方突然拿出一份極度詳細的「婚前協議書」，將財產與債務切割得清清楚楚。你的直覺是？",
+            options: [
+                { text: "(A) 感到受傷。婚姻建立在感情與共同奮鬥上，分得這麼清楚根本不像一家人。", add: "R", points: 2 },
+                { text: "(B) 極度認同！覺得這才是成熟負責的表現，未來就算出問題也不用撕破臉。", add: "L", points: 2 },
+                { text: "(C) 覺得太麻煩了，結個婚還要像簽商業合約一樣防東防西，乾脆不要結。", add: "R", points: 1 },
+                { text: "(D) 理智上接受，但情感上覺得太現實，會要求加入保障自己權益的條款才簽。", add: "L", points: 1 }
+            ]
+        },
+        // 【家庭與倫理篇】
+        {
+            axis: ["C", "I"], // 本位軸：集體(C) vs 個人(I)
+            text: "6. 年邁的父母表示住老家太孤單，希望搬來跟你同住。但你深知生活習慣差異極大，同住一定會引發嚴重衝突。你會？",
+            options: [
+                { text: "(A) 認為百善孝為先，無論如何都會把父母接來，並要求自己的伴侶多體諒退讓。", add: "C", points: 2 },
+                { text: "(B) 堅持拒絕同住，認為核心家庭的品質最重要，會用孝親費或幫忙租房解決。", add: "I", points: 2 },
+                { text: "(C) 採取拖延戰術或折衷方案（如試住一個月），慢慢讓他們打消念頭。", add: "C", points: 1 },
+                { text: "(D) 把問題丟給其他兄弟姊妹，或者以房子太小為由讓父母知難而退。", add: "I", points: 1 }
+            ]
+        },
+        {
+            axis: ["C", "I"],
+            text: "7. 家族中一位疏遠且名聲不佳的長輩過世了，父母要求你請假回鄉參加喪禮，並需負擔一筆不小的奠儀。你會？",
+            options: [
+                { text: "(A) 雖然不情願，但為了維持家族體面與父母面子，依然會請假出席並包白包。", add: "C", points: 2 },
+                { text: "(B) 人死如燈滅更何況不熟。直接拒絕出席，頂多匯款給父母代包。", add: "I", points: 2 },
+                { text: "(C) 找個無法推脫的客觀理由（如出差）缺席，讓父母有台階下，人不到但禮到。", add: "C", points: 1 },
+                { text: "(D) 藉此機會跟父母大吵一架，表達自己對傳統繁文縟節的厭惡。", add: "I", points: 1 }
+            ]
+        },
+        {
+            axis: ["H", "E"],
+            text: "8. 你的孩子成績能上頂尖實用科系，但他卻對某個冷門且就業困難的藝術科系充滿熱情。作為父母，你會？",
+            options: [
+                { text: "(A) 強烈介入，動用父母權威逼迫他選擇有保障的熱門科系，認為這是為他好。", add: "H", points: 2 },
+                { text: "(B) 完全尊重孩子的選擇，認為快樂與自我實現比世俗成功更重要，全力支持。", add: "E", points: 2 },
+                { text: "(C) 詳細分析現實利弊，要求他提出具體的「冷門科系生存計畫」才放行。", add: "H", points: 1 },
+                { text: "(D) 告訴他可以選想要的，但大學畢業後不給任何經濟援助，後果自負。", add: "E", points: 1 }
+            ]
+        },
+        // 【公共與道德篇】
+        {
+            axis: ["R", "L"],
+            text: "9. 在大賣場排隊結帳時，一位大媽推著滿滿一車商品，若無其事地插隊到你前面。你的反應是？",
+            options: [
+                { text: "(A) 為了避免衝突與浪費時間，心裡翻個白眼，默默忍耐讓她插隊。", add: "R", points: 2 },
+                { text: "(B) 直接呼叫賣場工作人員處理，讓擁有「場域執法權」的人來建立秩序。", add: "L", points: 2 },
+                { text: "(C) 拍她肩膀，語氣平和但堅定地請她去後面排隊。", add: "R", points: 1 },
+                { text: "(D) 大聲斥責她，試圖用社會與輿論壓力逼迫她退回原位。", add: "L", points: 1 }
+            ]
+        },
+        {
+            axis: ["T", "N"], // 變革軸：傳承(T) vs 創新(N)
+            text: "10. 市中心有一棟無人居住的百年歷史老建築，政府計畫拆除改建成當地急需的現代化醫院。你的立場是？",
+            options: [
+                { text: "(A) 堅決反對拆除。歷史記憶無法重來，文化底蘊不能妥協。", add: "T", points: 2 },
+                { text: "(B) 支持拆除。活人的醫療需求與城市發展，絕對大於一棟破房子。", add: "N", points: 2 },
+                { text: "(C) 要求折衷方案（如保留老外牆內部改建），即使工程預算暴增。", add: "T", points: 1 },
+                { text: "(D) 不太關心，覺得這是政客與建商的利益博弈，小民無法改變結果。", add: "N", points: 1 }
+            ]
+        },
+        {
+            axis: ["C", "I"],
+            text: "11. 網路上看到一篇與你價值觀完全相反、邏輯充滿漏洞的熱門文章。你的直覺反應是？",
+            options: [
+                { text: "(A) 感到憤怒，立刻在底下留長篇大論，一條一條駁斥對方，捍衛真理。", add: "C", points: 2 },
+                { text: "(B) 認為爭論毫無意義，直接滑掉或封鎖該作者，保持內心平靜。", add: "I", points: 2 },
+                { text: "(C) 截圖發到同溫層群組，跟朋友一起嘲笑這篇文章有多荒謬。", add: "C", points: 1 },
+                { text: "(D) 當作「反面教材」，冷靜分析對方的受眾與話術，作為社會觀察。", add: "I", points: 1 }
+            ]
+        },
+        // 【邊界與變革篇】
+        {
+            axis: ["C", "I"],
+            text: "12. 一個不算深交的朋友哭訴失戀，要求借住你家沙發幾天平復心情。你的做法是？",
+            options: [
+                { text: "(A) 基於人情與同情心，雖然麻煩還是會讓他來住並開導他。", add: "C", points: 2 },
+                { text: "(B) 直接拒絕，覺得對方沒有邊界感，這點交情不值得犧牲私人生活。", add: "I", points: 2 },
+                { text: "(C) 幫他出錢訂一間便宜旅館，用錢解決人情壓力，守住自己領地。", add: "C", points: 1 },
+                { text: "(D) 委婉拒絕，表示需要私人空間，但願意請他吃頓飯聽他倒垃圾。", add: "I", points: 1 }
+            ]
+        },
+        {
+            axis: ["T", "N"],
+            text: "13. 公司導入全新的 AI 系統，預計取代你一半的日常工作。面對這變化，你會？",
+            options: [
+                { text: "(A) 感到強烈危機感與抗拒，認為機器沒有人情味，擔心被裁員。", add: "T", points: 2 },
+                { text: "(B) 主動報名培訓學習駕馭 AI，讓自己成為不可或缺的管理者。", add: "N", points: 2 },
+                { text: "(C) 串聯同事找出系統毛病，向高層證明「人腦還是比較可靠」。", add: "T", points: 1 },
+                { text: "(D) 覺得是好事，正好利用省下的時間在辦公室摸魚或發展副業。", add: "N", points: 1 }
+            ]
+        },
+        {
+            axis: ["R", "L"],
+            text: "14. 路上看到一位家長因為孩子哭鬧，情緒失控當街用力甩了孩子一巴掌。你會？",
+            options: [
+                { text: "(A) 認為這是別人家務事，雖然不妥但不會上前干涉。", add: "R", points: 2 },
+                { text: "(B) 上前制止，警告他觸犯兒少法，必要時會報警。", add: "L", points: 2 },
+                { text: "(C) 在一旁錄影存證，並出聲勸阻「打小孩沒用啦，冷靜一點」。", add: "R", points: 1 },
+                { text: "(D) 快速離開現場，事後打電話通報社會局讓公權力介入。", add: "L", points: 1 }
+            ]
+        },
+        {
+            axis: ["T", "N"],
+            text: "15. 如果由你當家作主，你會怎麼安排過年大掃除、拜天公、走春等繁瑣習俗？",
+            options: [
+                { text: "(A) 盡可能保留所有儀式規矩，這是維繫家族傳統與年節氣氛的核心。", add: "T", points: 2 },
+                { text: "(B) 全面簡化，大掃除請人、拜拜雙手合十，過年就是要徹底休息。", add: "N", points: 2 },
+                { text: "(C) 保留一兩項核心儀式（如吃年夜飯），其他的能省則省尋求平衡。", add: "T", points: 1 },
+                { text: "(D) 趁這機會安排全家出國旅遊，避開國內所有的繁文縟節。", add: "N", points: 1 }
+            ]
+        },
+        // 【親密關係與性別篇】
+        {
+            axis: ["H", "E"],
+            text: "16. 準備同居，面對「生活開銷如何分攤」，你最傾向的模式是？",
+            options: [
+                { text: "(A) 收入較高或傳統上應承擔責任的一方應負擔大部分，這是責任感展現。", add: "H", points: 2 },
+                { text: "(B) 嚴格執行「AA制」精準平分，保持關係中絕對的平等與獨立。", add: "E", points: 2 },
+                { text: "(C) 設立「共同帳戶」按薪水比例存錢，公私分明但不計較零頭。", add: "H", points: 1 },
+                { text: "(D) 非常隨性，不刻意記帳，雙方心裡覺得平衡就好。", add: "E", points: 1 }
+            ]
+        },
+        {
+            axis: ["R", "L"],
+            text: "17. 第一次以伴侶身分去對方家作客，吃完飯面對滿桌杯盤狼藉，你會？",
+            options: [
+                { text: "(A) 為了留下懂事的好印象，主動幫忙收拾甚至搶著洗碗。", add: "R", points: 2 },
+                { text: "(B) 順手把自己用過的碗筷拿去放，但絕不幫全家人洗，堅守邊界。", add: "L", points: 2 },
+                { text: "(C) 認為自己是客人不該動手，坐在客廳等對方家人收拾。", add: "R", points: 1 },
+                { text: "(D) 事先套好招，讓伴侶去洗碗，自己負責陪長輩聊天提供情緒價值。", add: "L", points: 1 }
+            ]
+        },
+        {
+            axis: ["C", "I"],
+            text: "18. 年過三十單身，逢年過節長輩瘋狂幫你安排相親。你的處理策略是？",
+            options: [
+                { text: "(A) 為了給長輩面子，勉強自己打扮整齊去赴約當作交朋友。", add: "C", points: 2 },
+                { text: "(B) 強硬拒絕，在群組表態「請不要管我私事」，不怕引發衝突。", add: "I", points: 2 },
+                { text: "(C) 表面答應，然後用「要加班、出差」等藉口無限期拖延。", add: "C", points: 1 },
+                { text: "(D) 欣然赴約當免費吃飯，但一坐下就跟對方表明自己是被逼的。", add: "I", points: 1 }
+            ]
+        },
+        // 【社交與人際邊界篇】
+        {
+            axis: ["R", "L"],
+            text: "19. 五年沒聯絡的同學突然傳LINE：「最近過得好嗎？」你的直覺反應是？",
+            options: [
+                { text: "(A) 很高興對方記得自己，熱情回覆分享近況，珍惜緣分。", add: "R", points: 2 },
+                { text: "(B) 討厭虛寒問暖，直接回覆：「怎麼了？有事需要幫忙嗎？」", add: "L", points: 2 },
+                { text: "(C) 認定對方要賣保險發喜帖，冷淡回覆「還行」等他露出真面目。", add: "R", points: 1 },
+                { text: "(D) 覺得這種社交消耗能量，直接已讀不回或不點開。", add: "L", points: 1 }
+            ]
+        },
+        {
+            axis: ["H", "E"],
+            text: "20. 老闆常在週末辦「自由參加」的烤肉，不去會被關切。你會？",
+            options: [
+                { text: "(A) 積極參與幫忙規劃，認為建立私交是職場晉升關鍵。", add: "H", points: 2 },
+                { text: "(B) 堅決不去。週末是私人時間，沒加班費就無權要求我出席。", add: "E", points: 2 },
+                { text: "(C) 找無法拒絕的客觀理由（如進修、顧長輩）完美閃躲，既不去也不黑掉。", add: "H", points: 1 },
+                { text: "(D) 勉強去露臉，吃完免費的飯就找藉口提早開溜。", add: "E", points: 1 }
+            ]
+        },
+        {
+            axis: ["R", "L"],
+            text: "21. 親戚知道你會修電腦/懂法律，跑來要求「順手」免費幫忙。你會？",
+            options: [
+                { text: "(A) 覺得親人講錢傷感情，雖然累還是會義務幫忙處理到好。", add: "R", points: 2 },
+                { text: "(B) 直接傳「公定價目表」，表示親戚打九折，但專業必須付費。", add: "L", points: 2 },
+                { text: "(C) 用公司規定當擋箭牌「私下接案會被開除」委婉拒絕。", add: "R", points: 1 },
+                { text: "(D) 答應幫忙但故意拖很久或只做最陽春版，讓他們知難而退。", add: "L", points: 1 }
+            ]
+        },
+        // 【消費與生活風格篇】
+        {
+            axis: ["T", "N"],
+            text: "22. 面對「買房 vs 租房」，你內心最深處的觀念是？",
+            options: [
+                { text: "(A) 買房是必經里程碑，擁有房子才算「扎根」，背房貸也值得。", add: "T", points: 2 },
+                { text: "(B) 堅持租房。錢拿去投資理財、保持隨時能搬家的自由才是聰明人。", add: "N", points: 2 },
+                { text: "(C) 買房，但純粹當作抗通膨投資工具，隨時準備獲利了結換屋。", add: "T", points: 1 },
+                { text: "(D) 現在房價太不合理，選擇躺平，把錢拿去享受生活與出國。", add: "N", points: 1 }
+            ]
+        },
+        {
+            axis: ["H", "E"],
+            text: "23. 購買汽車時，除了預算，你最看重的附加價值是什麼？",
+            options: [
+                { text: "(A) 品牌光環與社會地位，寧願捏緊預算也要買豪華品牌撐場面。", add: "H", points: 2 },
+                { text: "(B) 不想買車。依賴大眾運輸與計程車才是最具經濟效益的現代解法。", add: "E", points: 2 },
+                { text: "(C) 極致實用與二手保值率，只看國民神車，車只是代步工具。", add: "H", points: 1 },
+                { text: "(D) 展現個人品味，傾向購買外型特殊或具特定文化的車款。", add: "E", points: 1 }
+            ]
+        },
+        {
+            axis: ["T", "N"],
+            text: "24. 身體出現輕微不適（如快感冒、痠痛）時，你的反應是？",
+            options: [
+                { text: "(A) 尋求傳統療法，如看中醫調氣血、刮痧，或喝草藥配方。", add: "T", points: 2 },
+                { text: "(B) 去西醫診所拿藥，用最快科學方式壓下症狀，不影響工作。", add: "N", points: 2 },
+                { text: "(C) 相信自然免疫力，請假在家狂睡一天讓它自己好。", add: "T", points: 1 },
+                { text: "(D) 上網查文獻，自己買維他命等現代保健食品來吃。", add: "N", points: 1 }
+            ]
+        },
+        // 【資訊與危機篇】
+        {
+            axis: ["R", "L"],
+            text: "25. 家族群組裡長輩轉傳了一篇完全是偽科學的健康謠言。你會？",
+            options: [
+                { text: "(A) 視而不見。長輩出於關心，沒必要為假文章破壞家族和諧。", add: "R", points: 2 },
+                { text: "(B) 找事實查核文章直接丟到群組反駁，防止親戚受害。", add: "L", points: 2 },
+                { text: "(C) 私下傳訊息給該長輩，委婉告訴他這可能是假新聞。", add: "R", points: 1 },
+                { text: "(D) 回傳帶嘲諷的長輩圖或迷因，半開玩笑化解荒謬場面。", add: "L", points: 1 }
+            ]
+        },
+        {
+            axis: ["T", "N"],
+            text: "26. 爆紅App要求極度不合理的隱私權限（讀取相簿、麥克風）。你會？",
+            options: [
+                { text: "(A) 為了保護隱私果斷放棄安裝，鄙視為了便利出賣個資的人。", add: "T", points: 2 },
+                { text: "(B) 直接按「全部同意」，大數據時代個人隱私早就不存在了。", add: "N", points: 2 },
+                { text: "(C) 仔細閱讀條款，評估公司背景後再決定要不要給資料。", add: "T", points: 1 },
+                { text: "(D) 安裝後立刻去手機後台把權限關閉，或用備用機登入。", add: "N", points: 1 }
+            ]
+        },
+        {
+            axis: ["R", "L"],
+            text: "27. 深夜街上看到一對情侶發生激烈肢體拉扯爭吵。你會？",
+            options: [
+                { text: "(A) 充滿正義感，立刻衝上前介入拉開兩人並大聲喝斥。", add: "R", points: 2 },
+                { text: "(B) 躲在柱子後錄影存證，並默默撥打110請警察處理。", add: "L", points: 2 },
+                { text: "(C) 認為事不關己，可能是家務事，低頭假裝沒看到快速走過。", add: "R", points: 1 },
+                { text: "(D) 試圖攔下其他路人，煽動大家一起過去關心分散風險。", add: "L", points: 1 }
+            ]
+        },
+        {
+            axis: ["C", "I"],
+            text: "28. 路上撿到厚厚一疊千元大鈔的無證件皮夾，四下無人你會？",
+            options: [
+                { text: "(A) 立刻送警局。認為拿不屬於自己的錢會敗人品、損陰德。", add: "C", points: 2 },
+                { text: "(B) 抽走現金把空皮夾丟掉，認為這是天上掉下來的運氣。", add: "I", points: 2 },
+                { text: "(C) 拿去捐給廟宇或慈善機構，求個心安理得。", add: "C", points: 1 },
+                { text: "(D) 假裝沒看到連撿都不撿，怕是詐騙釣魚手法惹麻煩。", add: "I", points: 1 }
+            ]
+        },
+        {
+            axis: ["H", "E"],
+            text: "29. 發現公司高層長期進行嚴重違法且危害公眾利益的操作。你會？",
+            options: [
+                { text: "(A) 選擇裝聾作啞，認為天塌下來有高層頂著，保住飯碗要緊。", add: "H", points: 2 },
+                { text: "(B) 蒐集證據，以匿名向媒體或檢調吹哨舉發，社會正義優先。", add: "E", points: 2 },
+                { text: "(C) 越級向董事會匯報，希望體制內解決避免公司名譽受損。", add: "H", points: 1 },
+                { text: "(D) 立刻投履歷找新工作，確認離職安全後再考慮要不要舉發。", add: "E", points: 1 }
+            ]
+        },
+        {
+            axis: ["R", "L"],
+            text: "30. 你最好的朋友酒駕肇事逃逸，神色慌張跑來你家借躲。你會？",
+            options: [
+                { text: "(A) 基於情義立刻讓他藏好，甚至幫忙湮滅證據或安排逃跑。", add: "R", points: 2 },
+                { text: "(B) 堅決不讓進門並嚴厲指責，表明不走就報警，拒絕成共犯。", add: "L", points: 2 },
+                { text: "(C) 讓他進門安撫情緒，然後苦勸他自首，願陪他去警局。", add: "R", points: 1 },
+                { text: "(D) 讓他進門休息，然後偷偷躲進廁所報警，認為這是為他好。", add: "L", points: 1 }
+            ]
+        },// 【教育與教養篇】
+        {
+            axis: ["H", "E"], // 結構軸：階序(H) vs 平權(E)
+            text: "31. 孩子因為制服少扣一顆扣子，被生教組長公開嚴厲痛罵罰站。你會？",
+            options: [
+                { text: "(A) 認為老師管教有理。要求孩子認錯，教導他服從體制與紀律。", add: "H", points: 2 },
+                { text: "(B) 隔天立刻衝去學校找老師理論，捍衛孩子尊嚴，反對威權公開羞辱。", add: "E", points: 2 },
+                { text: "(C) 表面安撫孩子，私下教導他「在體制內生存要懂得做表面工夫」。", add: "H", points: 1 },
+                { text: "(D) 把整件事發到爆料公社或家長群組，利用社群輿論壓力逼學校道歉。", add: "E", points: 1 }
+            ]
+        },
+        {
+            axis: ["T", "N"], // 變革軸：傳承(T) vs 創新(N)
+            text: "32. 關於為剛出生的孩子「取名字」，你最傾向的決策方式是？",
+            options: [
+                { text: "(A) 拿八字請教算命師，或請家族最有學問的長輩賜名，祈求平順。", add: "T", points: 2 },
+                { text: "(B) 翻閱文學經典或夫妻自己想一個讀音優美、充滿現代美感的名字。", add: "N", points: 1 },
+                { text: "(C) 覺得名字是代號，找個順口、筆畫少、沒諧音的菜市場名就好。", add: "T", points: 1 },
+                { text: "(D) 故意取一個極度前衛、帶動漫或外國翻譯風格的名字，讓他與眾不同。", add: "N", points: 2 }
+            ]
+        },
+        // 【科技與未來觀篇】
+        {
+            axis: ["T", "N"],
+            text: "33. 若未來科技能將已故親人的資料輸入AI，生成一個能隨時通話的「數位亡者」。你的態度是？",
+            options: [
+                { text: "(A) 強烈排斥。生死有命，這褻瀆了亡者也違背自然法則。", add: "T", points: 2 },
+                { text: "(B) 欣然付費。科技是為彌補遺憾，只要能帶來安慰，是不是真人無所謂。", add: "N", points: 2 },
+                { text: "(C) 只用一次。在葬禮後做最後道別，把話說完就刪除帳號繼續過日子。", add: "T", points: 1 },
+                { text: "(D) 覺得很酷但不會用在親人身上。會幫「自己」建一個，死後繼續發廢文。", add: "N", points: 1 }
+            ]
+        },
+        {
+            axis: ["C", "I"], // 本位軸：集體(C) vs 個人(I)
+            text: "34. 能大幅提升效率但會導致底層大量失業的全新 AI 工具問世。你的立場是？",
+            options: [
+                { text: "(A) 支持政府強力管制或課徵AI稅補貼失業者，科技不能凌駕社會穩定。", add: "C", points: 2 },
+                { text: "(B) 全力擁抱新技術。歷史巨輪會淘汰不適任者，人類應順應進化。", add: "I", points: 2 },
+                { text: "(C) 政治中立，但私下瘋狂學習這套工具，確保自己是操作機器的人。", add: "I", points: 1 },
+                { text: "(D) 覺得無所謂，反正資本家永遠會剝削勞工，有沒有 AI 都一樣。", add: "C", points: 1 }
+            ]
+        },
+        // 【公民與社會參與篇】
+        {
+            axis: ["H", "E"],
+            text: "35. 捷運上，精神奕奕的老人敲拐杖要求坐博愛座的年輕人（裝睡中）讓座。你會？",
+            options: [
+                { text: "(A) 覺得年輕人太不懂敬老尊賢，會主動出聲幫老人家講話要求讓座。", add: "H", points: 2 },
+                { text: "(B) 覺得老人倚老賣老，會替年輕人講話，博愛座是給有需求的人不是專屬老人。", add: "E", points: 2 },
+                { text: "(C) 直接把自己的一般座位讓給老人，只為趕快結束吵鬧換取安靜。", add: "H", points: 1 },
+                { text: "(D) 貫徹不多管閒事原則，默默看戲或把手機鏡頭對準他們準備錄影。", add: "E", points: 1 }
+            ]
+        },
+        {
+            axis: ["R", "L"], // 制裁軸：禮治/人情(R) vs 法理/系統(L)
+            text: "36. 社區管委會提議：每月多繳錢請 24 小時真人保全，或一次性花費裝設 AI 人臉辨識監控。你的選擇是？",
+            options: [
+                { text: "(A) 真人保全。機器是冷的，社區需要有人情味、能幫忙的人際防護網。", add: "R", points: 2 },
+                { text: "(B) AI 監控。機器不會偷懶沒情緒，長遠更省錢且具備科學證據力。", add: "L", points: 2 },
+                { text: "(C) 強烈反對人臉辨識侵犯隱私，但也不想多繳錢，主張維持現狀。", add: "R", points: 1 },
+                { text: "(D) 不管投什麼都好，只要能讓會議趕快結束讓我回家就行。", add: "L", points: 1 }
+            ]
+        },
+        // 【生命里程碑與禮俗篇】
+        {
+            axis: ["T", "N"],
+            text: "37. 若可完全決定自己的喪禮形式，你最希望？",
+            options: [
+                { text: "(A) 傳統宗教儀式，法師念經、安葬家族墓園，讓子孫能慎終追遠。", add: "T", points: 2 },
+                { text: "(B) 極簡環保葬，不辦告別式不發訃聞，回歸大自然不給活人添麻煩。", add: "N", points: 2 },
+                { text: "(C) 遺體直接捐給醫學院做大體老師，發揮物理價值，儀式毫無意義。", add: "T", points: 1 },
+                { text: "(D) 辦一場歡樂的「生前告別式」或派對，規定大家穿花綠綠喝啤酒。", add: "N", points: 1 }
+            ]
+        },
+        {
+            axis: ["C", "I"],
+            text: "38. 突然中了樂透頭獎一億元，入帳後你的第一步是？",
+            options: [
+                { text: "(A) 絕對保密，買房地產設立家族信託，讓財富穩定傳承給下一代。", add: "C", points: 2 },
+                { text: "(B) 辭職買頭等艙環遊世界，將錢完全用來實現個人的終極享樂。", add: "I", points: 2 },
+                { text: "(C) 捐大筆錢給慈善機構或蓋廟。深信德不配位必有災殃，需散財擋煞。", add: "C", points: 1 },
+                { text: "(D) 照常上班但心態變極度囂張，把這筆錢當作隨時炒老闆的底氣。", add: "I", points: 1 }
+            ]
+        },
+        // 【衝突與寬恕篇】
+        {
+            axis: ["R", "L"],
+            text: "39. 國中曾長期霸凌你的同學，十年後突然私訊說信教懺悔了，希望能請吃飯當面道歉。你會？",
+            options: [
+                { text: "(A) 赴約接受道歉。既然對方有心悔改，寬恕他人也是昇華自己。", add: "R", points: 2 },
+                { text: "(B) 果斷拒絕並封鎖。遲來道歉只為減輕他罪惡感，我不需要原諒來治癒。", add: "L", points: 2 },
+                { text: "(C) 赴約但目的是看他現在有何資源可利用，把虧欠轉化為實質利益。", add: "R", points: 1 },
+                { text: "(D) 不回覆，但會偷偷肉搜看他現在過得多慘，獲得心態平衡。", add: "L", points: 1 }
+            ]
+        },
+        {
+            axis: ["T", "N"],
+            text: "40. 愛寵罹患重病，有一項成功率30%的前衛手術，但費用高達半年薪水。你會？",
+            options: [
+                { text: "(A) 拒絕開刀帶回家，尋求傳統草藥偏方或求符水，希望奇蹟發生。", add: "T", points: 2 },
+                { text: "(B) 選擇安樂死。理智評估花費太高且動物痛苦，感性讓位給現實預算。", add: "N", points: 2 },
+                { text: "(C) 砸鍋賣鐵也要救。只要有一絲希望，傾家蕩產在所不惜。", add: "T", points: 1 },
+                { text: "(D) 上網發起群眾募資或賣慘，透過網友愛心解決道德與經濟危機。", add: "N", points: 1 }
+            ]
+        },
+        // 【文化與認同篇】
+        {
+            axis: ["T", "N"],
+            text: "41. 知名歐美快時尚將你們家族極具神聖意義的傳統圖騰，印在便宜內褲上全球販售。你的感受是？",
+            options: [
+                { text: "(A) 極度憤怒。這是文化挪用與褻瀆傳統信仰，會參與連署要求下架道歉。", add: "T", points: 2 },
+                { text: "(B) 覺得沒差。全球化資本主義下，文化本就是可消費商品，別玻璃心。", add: "N", points: 2 },
+                { text: "(C) 感到高興。這是一種另類「文化輸出」，印在哪裡不重要。", add: "T", points: 1 },
+                { text: "(D) 直接跑去買一件穿穿看，覺得圖騰搭配現代設計其實滿潮的。", add: "N", points: 1 }
+            ]
+        },
+        {
+            axis: ["R", "L"],
+            text: "42. 去異國部落作客，主人端出當地極珍貴但在現代被視為殘忍的野味（如保育類）。你會？",
+            options: [
+                { text: "(A) 入境隨俗。客隨主便與尊重在地文化大於個人道德潔癖，捏鼻子吃下。", add: "R", points: 2 },
+                { text: "(B) 堅守普世道德底線嚴詞拒絕，並藉機教育主人這在現代不被允許。", add: "L", points: 2 },
+                { text: "(C) 高高興興吃下去，道德是虛偽概念，有難得美食不吃白不吃。", add: "R", points: 1 },
+                { text: "(D) 假裝自己腸胃炎或嚴重過敏，用完美謊言躲過這劫不傷主人面子。", add: "L", points: 1 }
+            ]
+        },
+        // 【成功與價值觀篇】
+        {
+            axis: ["C", "I"],
+            text: "43. 一份是穩定、社會地位高、父母驕傲但無聊的公務員；另一份是極具風險但你熱愛的新創。你選？",
+            options: [
+                { text: "(A) 公務員。人生底層邏輯是穩定與名望，熱情不能當飯吃，光宗耀祖實在。", add: "C", points: 2 },
+                { text: "(B) 新創團隊。比起安逸等死，不如燃燒生命追求自我實現與未知可能。", add: "I", points: 2 },
+                { text: "(C) 選擇公務員，但每天準時下班，把精力薪水拿來經營熱愛的副業。", add: "C", points: 1 },
+                { text: "(D) 哪邊起薪高就選哪邊，不考慮未來發展或熱情，現金入袋為安。", add: "I", points: 1 }
+            ]
+        },
+        {
+            axis: ["T", "N"],
+            text: "44. 整理老家發現一箱爺爺奶奶年輕時的數百封情書與家族秘辛日記。你會？",
+            options: [
+                { text: "(A) 買防潮箱小心供奉，這是家族傳承無價之寶，絕對不可丟棄。", add: "T", points: 2 },
+                { text: "(B) 丟進資源回收。過去的就過去，留破紙只會佔用現代生活空間。", add: "N", points: 2 },
+                { text: "(C) 把精采故事潤飾發布到網路或寫成小說，把家族歷史直接變現。", add: "T", points: 1 },
+                { text: "(D) 掃描成PDF數位化保存，把實體紙張全丟掉，追求效率與情懷折衷。", add: "N", points: 1 }
+            ]
+        },
+        {
+            axis: ["H", "E"],
+            text: "45. 如果人生可以重來，你最希望自己具備哪一種天賦？",
+            options: [
+                { text: "(A) 擁有能輕易與任何人建立深刻連結的「極致情商與魅力」，成為人際中心。", add: "H", points: 2 },
+                { text: "(B) 擁有過目不忘、一眼看透本質的「極致智力」，輕易破解世界知識法則。", add: "E", points: 2 },
+                { text: "(C) 擁有看淡一切、不被世俗慾望情緒困擾的「極致平靜」，永遠自在。", add: "H", points: 1 },
+                { text: "(D) 擁有含著金湯匙出生的「極致財富」，不需要天賦就能直接通關人生。", add: "E", points: 1 }
+            ]
+        },
+        // 【道德極限與法理篇】
+        {
+            axis: ["R", "L"],
+            text: "46. 掌握了某受人敬重公眾人物私下極難堪但「未違法」的道德瑕疵證據。媒體出高價收購你會？",
+            options: [
+                { text: "(A) 絕對不賣。這會毀了他一生善事，基於隱惡揚善將證據銷毀。", add: "R", points: 2 },
+                { text: "(B) 賣給媒體。既然他經營完美人設獲利，就有義務受檢驗，這是資訊交易。", add: "L", points: 2 },
+                { text: "(C) 不賣給媒體，但私下把證據寄給他，勒索換取未來資源人脈回報。", add: "R", points: 1 },
+                { text: "(D) 免費丟到國外匿名論壇，純粹想看虛偽偶像跌落神壇享受混亂。", add: "L", points: 1 }
+            ]
+        },
+        {
+            axis: ["R", "L"],
+            text: "47. 至親犯下嚴重刑事案件警方毫無頭緒，你是唯一知道真相的人。你會？",
+            options: [
+                { text: "(A) 認為「親親相隱」是人倫極致，承受極大心理折磨也會掩蓋把秘密帶進墳墓。", add: "R", points: 2 },
+                { text: "(B) 大義滅親帶他自首。認為法理與社會正義絕對高於個人私情。", add: "L", points: 2 },
+                { text: "(C) 利用秘密控制對方，在未來家族決策或財產分配佔據道德權力高地。", add: "R", points: 1 },
+                { text: "(D) 幫忙清理現場提供資金讓他潛逃國外，隨後不聯絡將風險切割。", add: "L", points: 1 }
+            ]
+        },
+        {
+            axis: ["C", "I"],
+            text: "48. 國家推動「全知法案」：腦部植入晶片讓犯罪率降為零社會絕對安全，但失去隱私。你的立場是？",
+            options: [
+                { text: "(A) 強烈支持。犧牲小我隱私換取社會絕對秩序與大眾安全，極度划算。", add: "C", points: 2 },
+                { text: "(B) 誓死反對。失去自由意志根本不叫人類社會，寧願危險也要捍衛隱私。", add: "I", points: 2 },
+                { text: "(C) 表面反對私下找屏蔽技術，準備在新世界當一個兩邊獲利的特權階級。", add: "C", points: 1 },
+                { text: "(D) 覺得無所謂。反正我每天上班打電動，腦子裡沒國家機密，裝就裝吧。", add: "I", points: 1 }
+            ]
+        },
+        // 【階級與生存篇】
+        {
+            axis: ["H", "E"],
+            text: "49. 末日地下避難所資源極度有限，必須實施「極權配給制」。由你制定規則你會？",
+            options: [
+                { text: "(A) 建立嚴格階級勞動制，依體力技能分配，無貢獻的老弱只能拿最低配給。", add: "H", points: 2 },
+                { text: "(B) 堅持絕對平權，資源無論地位一律均分，哪怕最後大家一起餓死也死得有尊嚴。", add: "E", points: 2 },
+                { text: "(C) 建立看似民主實質由少數菁英控制的委員會，用話術讓底層自願犧牲保全戰力。", add: "H", points: 1 },
+                { text: "(D) 放棄制定規則。人類終究會爭奪自相殘殺，躲在角落看這場實境秀。", add: "E", points: 1 }
+            ]
+        },
+        {
+            axis: ["R", "L"],
+            text: "50. 發現一筆無主鉅款，但來源是祖輩過去透過極不道德手段（壓榨詐騙）得來的。你會？",
+            options: [
+                { text: "(A) 覺得這筆錢帶著業障，堅決不動用，全數捐出替祖先贖罪洗清名譽。", add: "R", points: 2 },
+                { text: "(B) 毫無負擔據為己有。資本原始累積本是血腥的，祖先的錯與我無關錢無罪。", add: "L", points: 2 },
+                { text: "(C) 拿一半成立祖先慈善基金會做表面，剩下悄悄洗白匯入海外帳戶。", add: "R", points: 1 },
+                { text: "(D) 不管道德但嫌法律洗錢太麻煩，乾脆當作沒看到繼續過平凡日子。", add: "L", points: 1 }
+            ]
+        },
+        {
+            axis: ["R", "L"],
+            text: "51. 非常有錢且承擔全家開銷的伴侶，被你發現長期在外多次出軌且毫無悔意。你會？",
+            options: [
+                { text: "(A) 為維持家庭完整與社會眼光選擇隱忍，重心轉移到教養下一代或吃齋唸佛。", add: "R", points: 2 },
+                { text: "(B) 感情忠誠不可妥協，立刻蒐集證據提出離婚並要求龐大賠償，絕不留戀。", add: "L", points: 2 },
+                { text: "(C) 裝作不知道，開始瘋狂轉移資產買名牌房產，把婚姻當成高薪工作。", add: "R", points: 1 },
+                { text: "(D) 既然對方各玩各的，我也開始拿對方的錢去外面尋歡作樂，達成開放關係。", add: "L", points: 1 }
+            ]
+        },
+        // 【終極價值與虛無篇】
+        {
+            axis: ["T", "N"],
+            text: "52. 假設可刪除記憶中「最痛苦的一段經歷」，代價是失去從中學到的「重要教訓」。你會？",
+            options: [
+                { text: "(A) 拒絕刪除。痛苦是修煉必經之路，沒有傷痕就沒有現在成熟的自己。", add: "T", points: 2 },
+                { text: "(B) 毫不猶豫刪除。人生苦短，沒必要為成長承受長期創傷，快樂最重要。", add: "N", points: 2 },
+                { text: "(C) 拒絕刪除。違反生命經驗完整性，不管是好是壞那都是我的一部分。", add: "T", points: 1 },
+                { text: "(D) 不只刪痛苦，希望能把無聊的回憶一起刪掉，只留爽的記憶。", add: "N", points: 1 }
+            ]
+        },
+        {
+            axis: ["H", "E"],
+            text: "53. 職場遇到能力差品格低，但靠投胎（富二代）成為你頂頭上司的人。你應對之道是？",
+            options: [
+                { text: "(A) 堅守氣節與專業，不卑不亢，即使被打壓也絕不向德不配位的人低頭。", add: "H", points: 2 },
+                { text: "(B) 覺得體制不公，暗中串聯收集他濫權證據，準備找機會一舉鬥垮他。", add: "E", points: 2 },
+                { text: "(C) 放下身段展現極致向上管理，把蠢老闆當作自己晉升撈好處的跳板。", add: "H", points: 1 },
+                { text: "(D) 徹底躺平。老闆說什麼是什麼，公司垮了是他家的事我準時領薪水。", add: "E", points: 1 }
+            ]
+        },
+        {
+            axis: ["T", "N"],
+            text: "54. 有一種絕對準確的「死亡預言機」可告知確切死期與死因。你會想知道嗎？",
+            options: [
+                { text: "(A) 不想。人生意義在於未知，過度窺探天機反而破壞天地運作自然法則。", add: "T", points: 2 },
+                { text: "(B) 想。有了明確死期就可精準規劃人生把錢花光，不再為虛無未來焦慮。", add: "N", points: 2 },
+                { text: "(C) 想知道，但只會用來買最高額保險，確保死後留下一大筆錢給後代。", add: "T", points: 1 },
+                { text: "(D) 就算知道了也不會改變生活方式，反正結果一樣該打電動還是打電動。", add: "N", points: 1 }
+            ]
+        },
+        {
+            axis: ["T", "N"],
+            text: "55. 年老時面對醫療技術可靠插管讓你毫無意識多活五年，你的生前遺囑怎麼寫？",
+            options: [
+                { text: "(A) 身體髮膚受之父母，只要有一口氣就不能放棄，交由子孫盡孝道搶救到底。", add: "T", points: 2 },
+                { text: "(B) 簽署放棄急救（DNR）。尊嚴死大於一切，絕不允許自己變成醫療機器上的肉塊。", add: "N", points: 2 },
+                { text: "(C) 把決定權完全推給伴侶子女，讓他們承擔道德壓力，自己不想做決定。", add: "T", points: 1 },
+                { text: "(D) 交代子孫：如果醫療險理賠夠多有錢賺就繼續插著，會虧錢就趕快拔掉。", add: "N", points: 1 }
+            ]
+        },
+        // 【歷史與自我認同篇】
+        {
+            axis: ["C", "I"],
+            text: "56. 發現一直堅信的核心政治信仰或歷史認知，其實是掌權者捏造的百年謊言。你會？",
+            options: [
+                { text: "(A) 依然維護謊言。它已成為社會安定基石，戳破會引發天下大亂。", add: "C", points: 2 },
+                { text: "(B) 真理不容妥協。立刻公諸於世，哪怕摧毀同胞三觀。", add: "I", points: 2 },
+                { text: "(C) 覺得人類歷史本來就是一堆謊言堆疊的，太陽照常升起繼續過日子。", add: "C", points: 1 },
+                { text: "(D) 悄悄把情報賣給敵對國家競爭對手，利用百年資訊落差為自己謀取暴利。", add: "I", points: 1 }
+            ]
+        },
+        {
+            axis: ["C", "I"],
+            text: "57. 關於「繁衍後代」這件事，在你內心深處的定位是什麼？",
+            options: [
+                { text: "(A) 是神聖義務。為延續家族血脈傳承香火，不管多辛苦都必須完成。", add: "C", points: 2 },
+                { text: "(B) 是個人選擇。確認有足夠的愛與財力時，才會選擇將新生命帶來世界。", add: "I", points: 2 },
+                { text: "(C) 是長遠投資。養兒防老，趁年輕投入資源培養確保晚年有人照顧。", add: "C", points: 1 },
+                { text: "(D) 是罪惡麻煩。世界太糟把孩子生下來純粹讓他們受苦，堅決當頂客族。", add: "I", points: 1 }
+            ]
+        },
+        {
+            axis: ["H", "E"],
+            text: "58. 按下按鈕可瞬間掌握世界絕對統治權，代價是失去所有親友永遠孤獨。你會按嗎？",
+            options: [
+                { text: "(A) 毫不猶豫按下去。有了絕對統治權，我可以重新建立新秩序與新關係。", add: "H", points: 2 },
+                { text: "(B) 不按。絕對權力使人絕對腐化，統治責任太沉重不符合我追求自由本性。", add: "E", points: 2 },
+                { text: "(C) 絕對不按。沒有宗族與人際關係牽絆，權力與天下毫無意義。", add: "H", points: 1 },
+                { text: "(D) 按下去，然後隔天就把地球炸了，純粹體驗當造物主的終極快感。", add: "E", points: 1 }
+            ]
+        },
+        {
+            axis: ["T", "N"],
+            text: "59. 巔峰時刻神告訴你：可選擇在最完美的這刻立刻死去，或繼續活著面對衰老下坡。你選？",
+            options: [
+                { text: "(A) 繼續活著。盛極而衰是天道循環，即使衰老也是生命歷程一部分應坦然接受。", add: "T", points: 2 },
+                { text: "(B) 巔峰死去。讓最完美的狀態永遠凍結，勝過未來漫長的妥協苟活。", add: "N", points: 2 },
+                { text: "(C) 試圖跟神談判。看能否用巔峰期財富地位換取多幾十年健康把利益極大化。", add: "T", points: 1 },
+                { text: "(D) 覺得這神太有病，直接無視祂，跑去大吃一頓慶祝自己巔峰。", add: "N", points: 1 }
+            ]
+        },
+        // 【最終審視 Meta】
+        {
+            axis: ["T", "N"], // 依照您的指令，歸類於變革軸
+            text: "60. 做完這測驗後，若發現結果跟你原本「自以為」的形象完全相反。你的反應是？",
+            options: [
+                { text: "(A) 深刻反省。認為點出了長期盲點，開始調整心態讓行為與理想重新對齊。", add: "T", points: 2 },
+                { text: "(B) 覺得測驗根本不準。人類複雜度不可能被幾十個問題定義，堅信自我認知。", add: "T", points: 1 },
+                { text: "(C) 覺得很有趣。拿著結果去跟朋友炫耀自嘲「原來我心裡這麼黑暗啊」。", add: "N", points: 1 },
+                { text: "(D) 看完五秒後關掉視窗徹底忘記，去尋找下一個多巴胺刺激來源。", add: "N", points: 2 }
+            ]
+        }
+    ];
+
+    // 16型人格命名對照表 (部分範例)
+    const resultNames = {
+        "HCRT": "【古典士大夫】", "HCLT": "【鐵腕判官】", "HCRN": "【維新權臣】", "HCLN": "【科技官僚】",
+        "HIRT": "【世襲貴族】", "HILT": "【壟斷寡頭】", "HIRN": "【新貴買辦】", "HILN": "【狼性霸主】",
+        "ECRT": "【部落耆老】", "ECLT": "【教條平權者】", "ECRN": "【嬉皮共生者】", "ECLN": "【進步改革派】",
+        "EIRT": "【逍遙散人】", "EILT": "【古典自由派】", "EIRN": "【潮流玩家】", "EILN": "【賽博駭客】"
+    };
+
+    // 1. 新增：專業的陣列洗牌演算法 (Fisher-Yates Shuffle)
+    function shuffleArray(array) {
+        let currentIndex = array.length, randomIndex;
+        while (currentIndex !== 0) {
+            randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+            // 交換元素位置
+            [array[currentIndex], array[randomIndex]] = [array[randomIndex], array[currentIndex]];
+        }
+        return array;
+    }
+
+    // 2. 更新：開始測驗函數
+    function startQuiz() {
+        currentQuestionIndex = 0;
+        scores = { H: 0, E: 0, C: 0, I: 0, R: 0, L: 0, T: 0, N: 0 };
+        document.getElementById('title').style.display = 'none';
+
+        // 在測驗開始前，將 60 題大題庫進行洗牌
+        shuffleArray(questions);
+
+        showQuestion();
+    }
+
+    // 3. 更新：顯示題目函數（包含選項洗牌與動態重新編號）
+    function showQuestion() {
+        const q = questions[currentQuestionIndex];
+        document.getElementById('progress-text').innerText = `題目進度：${currentQuestionIndex + 1} / ${questions.length}`;
+        
+        // 處理題目文字：用正則表達式自動濾掉原本寫死的題號 (如 "1. ")
+        let cleanQuestionText = q.text.replace(/^\d+\.\s*/, '');
+        // 加上新的動態題號
+        document.getElementById('question-text').innerText = `${currentQuestionIndex + 1}. ${cleanQuestionText}`;
+        
+        // 將該題的四個選項複製出來，並進行選項洗牌
+        let shuffledOptions = [...q.options];
+        shuffleArray(shuffledOptions);
+
+        let optionsHtml = "";
+        const labels = ['A', 'B', 'C', 'D']; // 用來重新賦予乾淨的選項標籤
+        
+        shuffledOptions.forEach((opt, index) => {
+            // 處理選項文字：用正則表達式自動濾掉原本寫死的標籤 (如 "(A) ")
+            let cleanOptionText = opt.text.replace(/^\([A-D]\)\s*/, '');
+            
+            // 生成按鈕：綁定原本的精準計分邏輯 (opt.add, opt.points)，但顯示新的 ABCD 順序
+            optionsHtml += `<button class="option-btn" onclick="answerQuestion('${opt.add}', ${opt.points})">(${labels[index]}) ${cleanOptionText}</button>`;
+        });
+        document.getElementById('options-container').innerHTML = optionsHtml;
+    }
+
+    function answerQuestion(axis, points) {
+        // 給對應的代碼加分
+        scores[axis] += points;
+        
+        // 前進到下一題
+        currentQuestionIndex++;
+        if (currentQuestionIndex < questions.length) {
+            showQuestion();
+        } else {
+            calculateResult();
+        }
+    }
+
+    function calculateResult() {
+        // 數學對決：哪邊分數大，就拿哪邊的字母
+        let code = "";
+        code += (scores.H >= scores.E) ? "H" : "E";
+        code += (scores.C >= scores.I) ? "C" : "I";
+        code += (scores.R >= scores.L) ? "R" : "L";
+        code += (scores.T >= scores.N) ? "T" : "N";
+
+        // 隱藏題目，顯示結果
+        document.getElementById('quiz-screen').style.display = 'none';
+        document.getElementById('result-screen').style.display = 'block';
+        
+        document.getElementById('result-code').innerText = code;
+        document.getElementById('result-name').innerText = resultNames[code] || "【未知領域的開拓者】";
+    }
+</script>
+
+</body>
+</html>
