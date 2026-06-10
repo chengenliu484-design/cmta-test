@@ -729,14 +729,23 @@
         return array;
     }
 
-    // 2. 更新：開始測驗函數
+    // 2. 更新：開始測驗函數 (鎖定最後一題不洗牌)
     function startQuiz() {
         currentQuestionIndex = 0;
         scores = { H: 0, E: 0, C: 0, I: 0, R: 0, L: 0, T: 0, N: 0 };
         document.getElementById('title').style.display = 'none';
 
-        // 在測驗開始前，將 60 題大題庫進行洗牌
-        shuffleArray(questions);
+        // 步驟 A：把除了最後一題之外的「普通題目」切出來 (前 59 題)
+        let normalQuestions = questions.slice(0, questions.length - 1);
+        
+        // 步驟 B：只對這些普通題目進行洗牌
+        shuffleArray(normalQuestions);
+
+        // 步驟 C：把洗好的前 59 題，依序寫回原本的 questions 陣列中
+        for (let i = 0; i < normalQuestions.length; i++) {
+            questions[i] = normalQuestions[i];
+        }
+        // 此時 questions 的第 60 題 (也就是 questions[59]) 原本就沒動過，完美地留在了最後！
 
         showQuestion();
     }
